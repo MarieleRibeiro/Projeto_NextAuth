@@ -1,5 +1,5 @@
-import { createContext, ReactNode, useState } from "react";
-import { setCookie } from "nookies"; // biblioteca para trabalhar com cookies dentro do next.js(yarn add nookies)
+import { createContext, ReactNode, useEffect, useState } from "react";
+import { parseCookies, setCookie } from "nookies"; // biblioteca para trabalhar com cookies dentro do next.js(yarn add nookies)
 import { api } from "../services/api";
 import Router from "next/router";
 
@@ -27,11 +27,24 @@ type AuthProviderProps = {
 
 export const AuthContext = createContext({} as AuthContextData);
 
+// children= são todos os elementos que estão dentro do componenente AuthProvider
 export function AuthProvider({ children }: AuthProviderProps) {
-  // children= são todos os elementos que estão dentro do componenente AuthProvider
   const [user, setUser] = useState<User>();
 
   const isAuthenticated = !!user; // saber se o usuário esta autenticado
+
+  useEffect(() => {
+    // armazenar os cookies, sempre que acessa a aplicação
+    const { "nextauth.token": token } = parseCookies(); // me retorna uma lista de todos os cookies salvos
+
+    if (token) {
+      api.get("/me").then((response) => {
+        const { email, permissions, roles } = response.data;
+
+        setUser({ email, permissions, roles });
+      });
+    }
+  }, []);
 
   async function signIn({ email, password }) {
     try {
@@ -61,6 +74,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
         permissions,
         roles,
       }); // salvando o usuário
+
+      api.defaults.headers["Authorization"] = `Bearer ${token}`; // atualizar a informação de token depois do login
 
       Router.push("/dashboard"); //redirecionando o usuário para a pagina
     } catch (err) {
