@@ -1,4 +1,5 @@
 import { createContext, ReactNode, useState } from "react";
+import { setCookie } from "nookies"; // biblioteca para trabalhar com cookies dentro do next.js(yarn add nookies)
 import { api } from "../services/api";
 import Router from "next/router";
 
@@ -39,7 +40,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
         password,
       }); // atenticação do usuário
 
-      const { permissions, roles } = response.data; // resposta da minha requisição
+      const { token, refreshToken, permissions, roles } = response.data; // resposta da minha requisição
+
+      setCookie(undefined, "nextauth.token", token, {
+        maxAge: 60 * 60 * 24 * 30, // validade do meu cookie 30 days
+        path: "/", //quais caminhos da minha aplicação vão ter acesso a esse cookie(no caso aqui a / representa que qualquer endereço vai ter acesso aos cookies)
+      });
+      setCookie(undefined, "nextauth.refreshToken", refreshToken, {
+        maxage: 60 * 60 * 24 * 30,
+        path: "/",
+      });
+      //recebe 3 parametros -> 1.contexto da requisição(ele não vai existir quando nossa aplicação estiver rodando pelo browser)
+      // sempre que eu estou tentando tratar um cookie, setar, buscar, e eu estiver executando pelo lado do browser vai ser undefined
+      // 2. nome do cookie
+      // 3. e o valor
+      // 4. posso passar uma serie de opções para o valor em si
 
       setUser({
         email,
