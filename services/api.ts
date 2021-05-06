@@ -1,6 +1,10 @@
 import axios, { AxiosError } from "axios";
+import { request } from "node:http";
 
 import { parseCookies, setCookie } from "nookies";
+
+let isRefreshing = false; //identificar se eu estou atualizando o token ou não
+let failedRequestsQueue = [];
 
 let cookies = parseCookies(); // tipo let pode receber um novo valor
 
@@ -23,31 +27,61 @@ api.interceptors.response.use(
         cookies = parseCookies();
 
         const { "nextauth.refreshToken": refreshToken } = cookies;
+        const originalConfig = error.config; // config=tem todas as configuração da requisição feita para o backend
 
-        api
-          .post("/refresh", {
-            refreshToken,
-          })
-          .then((response) => {
-            const { token } = response.data;
+        if (!isRefreshing) {
+          // eu sou vou fazer o refresh token uma unica vez, idenpendente de quantas chamadas api acontecem ao mesmmo tempo
+          isRefreshing = true;
 
-            setCookie(undefined, "nextauth.token", token, {
-              maxAge: 60 * 60 * 24 * 30,
-              path: "/",
-            });
+          api
+            .post("/refresh", {
+              refreshToken,
+            })
+            .then((response) => {
+              const { token } = response.data;
 
-            setCookie(
-              undefined,
-              "nextauth.refreshToken",
-              response.data.refreshToken,
-              {
+              setCookie(undefined, "nextauth.token", token, {
                 maxAge: 60 * 60 * 24 * 30,
                 path: "/",
-              }
-            );
+              });
 
-            api.defaults.headers["Authorization"] = `Bearer ${token}`;
+              setCookie(
+                undefined,
+                "nextauth.refreshToken",
+                response.data.refreshToken,
+                {
+                  maxAge: 60 * 60 * 24 * 30,
+                  path: "/",
+                }
+              );
+
+              api.defaults.headers["Authorization"] = `Bearer ${token}`;
+
+              failedRequestsQueue.forEach((request) => request.onSucess(token));
+              failedRequestsQueue = [];
+            })
+            .catch((err) => {
+              failedRequestsQueue.forEach((request) => request.onFailure(err));
+              failedRequestsQueue = [];
+            })
+            .finally(() => {
+              // quando ele terminar de fazer o refresh
+              isRefreshing = false;
+            });
+        }
+
+        return new Promise((resolve, reject) => {
+          failedRequestsQueue.push({
+            onSucess: (token: string) => {
+              originalConfig.headers["Authorization"] = `Bearer ${token}`;
+
+              resolve(api(originalConfig)); // todas as configurações que eu preciso para fazer uma chamada api de novo
+            },
+            onFailure: (err: AxiosError) => {
+              reject(err);
+            },
           });
+        });
       } else {
         // deslogar o usuário
       }
