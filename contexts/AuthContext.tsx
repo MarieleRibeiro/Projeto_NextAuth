@@ -1,7 +1,8 @@
 import { createContext, ReactNode, useEffect, useState } from "react";
 import { destroyCookie, parseCookies, setCookie } from "nookies"; // biblioteca para trabalhar com cookies dentro do next.js(yarn add nookies)
-import { api } from "../services/api";
+
 import Router from "next/router";
+import { api } from "../services/apiClient";
 
 type User = {
   email: string;
