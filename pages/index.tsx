@@ -2,6 +2,7 @@ import { FormEvent, useContext, useState } from "react";
 import { parseCookies } from "nookies";
 import { AuthContext } from "../contexts/AuthContext";
 import { GetServerSideProps } from "next";
+import { withSSRGuest } from "../utils/withSSRGuest";
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -38,20 +39,10 @@ export default function Home() {
 }
 
 //verificação pelo próprio servidor(trabalhar com cookies pelo lado do servidor)
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const cookies = parseCookies(ctx);
-
-  if (cookies["nextauth.token"]) {
-    return {
-      redirect: {
-        destination: "/dashboard",
-        permanent: false,
-      },
-    };
-  }
+export const getServerSideProps = withSSRGuest(async (ctx) => {
   return {
     props: {},
   };
-};
+});
 //quando estou pelo lado do backend(servidor) toda vez que vou utilizar as funções do nookies
 // eu sempre passo o primeiro parametro o meu contexto(ctx) e não mais undefined
