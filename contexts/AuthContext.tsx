@@ -53,7 +53,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser({ email, permissions, roles });
         })
         .catch(() => {
-          signOut();
+          signOut(); //se der outro tipo de erro que não for de refreshtoken, o usuário vai ser deslogado e redirecionado para a pagina inicial
         });
     }
   }, []);

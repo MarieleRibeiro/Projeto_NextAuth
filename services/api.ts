@@ -1,5 +1,4 @@
 import axios, { AxiosError } from "axios";
-import { request } from "node:http";
 
 import { parseCookies, setCookie } from "nookies";
 import { signOut } from "../contexts/AuthContext";
