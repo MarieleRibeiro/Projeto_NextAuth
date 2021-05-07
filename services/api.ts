@@ -2,6 +2,7 @@ import axios, { AxiosError } from "axios";
 
 import { parseCookies, setCookie } from "nookies";
 import { signOut } from "../contexts/AuthContext";
+import { AuthTokenError } from "./errors/AuthTokenError";
 
 let isRefreshing = false; //identificar se eu estou atualizando o token ou não
 let failedRequestsQueue = [];
@@ -26,7 +27,7 @@ export function setupApiClient(ctx = undefined) {
         //erro de não autorizado
         if (error.response.data?.code === "token.expired") {
           //renovar o token
-          cookies = parseCookies(ctx);
+          cookies = parseCookies();
 
           const { "nextauth.refreshToken": refreshToken } = cookies;
           const originalConfig = error.config; // config=tem todas as configuração da requisição feita para o backend
@@ -94,7 +95,11 @@ export function setupApiClient(ctx = undefined) {
         } else {
           // deslogar o usuário
           if (process.browser) {
+            //se eu estou no browser vou retornar
             signOut();
+          } else {
+            // se não
+            return Promise.reject(new AuthTokenError());
           }
         }
       }
