@@ -1,9 +1,10 @@
+// hook vai retornar se o usuário tem ou não permissão
 import { useContext } from "react";
 import { AuthContext } from "../contexts/AuthContext";
 
 type UseCanParams = {
-  permissions?: string[];
-  roles?: string[];
+  permissions?: string[]; //parametro opcional
+  roles?: string[]; //parametro opcional
 };
 
 export function useCan({ permissions, roles }: UseCanParams) {
