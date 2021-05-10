@@ -17,7 +17,8 @@ type SignInCredentials = {
 
 type AuthContextData = {
   //são as informações que eu vou ter dentro do meu contexto, oque eu quero salvar de informações do usuario
-  signIn(credencials: SignInCredentials): Promise<void>;
+  signIn: (credencials: SignInCredentials) => Promise<void>;
+  signOut: () => void;
   user: User; // dados do usuário
   isAuthenticated: boolean; // se o usuário esta autenticado ou não
 };
@@ -28,9 +29,13 @@ type AuthProviderProps = {
 
 export const AuthContext = createContext({} as AuthContextData);
 
+let authChannel: BroadcastChannel;
+
 export function signOut() {
   destroyCookie(undefined, "nextauth.token");
   destroyCookie(undefined, "nextauth.refreshToken");
+
+  authChannel.postMessage("signOut");
 
   Router.push("/");
 }
@@ -40,6 +45,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User>();
 
   const isAuthenticated = !!user; // saber se o usuário esta autenticado
+
+  useEffect(() => {
+    authChannel = new BroadcastChannel("auth");
+
+    authChannel.onmessage = (message) => {
+      switch (message.data) {
+        case "signOut":
+          signOut();
+          break;
+        default:
+          break;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     // armazenar os cookies, sempre que acessa a aplicação
@@ -97,7 +116,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   return (
-    <AuthContext.Provider value={{ signIn, isAuthenticated, user }}>
+    <AuthContext.Provider value={{ signIn, signOut, isAuthenticated, user }}>
       {children}
     </AuthContext.Provider>
   );
